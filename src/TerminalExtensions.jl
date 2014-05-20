@@ -52,6 +52,7 @@ function queryTermcap(name::ASCIIString)
         "\e7",              # Save cursor position
         CSI,1,"E",          # Cursor next line
         DCS,"+q$q\e",ST,    # The actual query
+        "\x1b[0G\x1b[0K",   # Clear line
         "\e8",              # Cursor restore
         )
     write(STDOUT,query)
