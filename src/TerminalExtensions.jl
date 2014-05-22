@@ -110,6 +110,32 @@ module iTerm2
 
     immutable InlineDisplay <: Display; end
 
+    function set_mark()
+        "\033]50;SetMark\007"
+    end
+
+    # Runs after interactively edited command but before execution
+    function preexec()
+        "\033]133;C\007"
+    end
+
+    function remotehost_and_currentdir()
+        return string("\033]1337;RemoteHost=",ENV["USER"],"@",readall(`hostname -f`),"\007","\033]1337;CurrentDir=",pwd(),"\007")
+    end
+
+    function prompt_prefix(last_success = true)
+        return string("\033]133;D;$(int(last_success))\007",remotehost_and_currentdir(),"\033]133;A\007")
+    end
+
+    function prompt_suffix()
+        return "\033]133;B\007"
+    end
+
+    function shell_version_number()
+        return "\033]1337;ShellIntegrationVersion=1\007"
+    end
+
+
     function prepare_display_file(;filename="Unnamed file", size=nothing, width=nothing, height=nothing, preserveAspectRation::Bool=true, inline::Bool=false)
         q = "\e]1337;File="
         options = ASCIIString[]
@@ -160,12 +186,48 @@ function __init__()
     if !isinteractive()
         return
     end
+    # print, but hide initial mark, even before we know we're dealing with iterm
+    q = string(
+        iTerm2.shell_version_number(),  # Shell mode version
+        iTerm2.remotehost_and_currentdir(),    # Remote host and current directory
+        # Set preliminary mark (will be updated when command is actually executed)
+        iTerm2.set_mark(),
+        "\x1b[0G\x1b[0K",               # Clear line
+    )
+    print(STDOUT,q)
     @async begin
         term = Base.Terminals.TTYTerminal("xterm",STDIN,STDOUT,STDERR)
         Base.Terminals.raw!(term,true)
         start_reading(STDIN)
+
         if queryTermcap("TN") == "iTerm2"
             pushdisplay(iTerm2.InlineDisplay())
+            repl = Base.active_repl#REPL.LineEditREPL(Terminals.TTYTerminal("xterm",STDIN,STDOUT,STDERR))
+
+            if !isdefined(repl,:interface)
+                repl.interface = Base.REPL.setup_interface(repl)
+            end
+
+            let waserror = false
+                prefix = repl.interface.modes[1].prompt_prefix
+                repl.interface.modes[1].prompt_prefix = function ()
+                    (TerminalExtensions.iTerm2.prompt_prefix(waserror) * (isa(prefix,Function) ? prefix() : prefix))
+                end
+                suffix = repl.interface.modes[1].prompt_suffix
+                repl.interface.modes[1].prompt_suffix = function ()
+                    ((isa(suffix,Function) ? suffix() : suffix) * TerminalExtensions.iTerm2.prompt_suffix())
+                end
+                for mode in repl.interface.modes
+                    if isdefined(mode,:on_done)
+                        of = mode.on_done
+                        mode.on_done = function (args...)
+                            print(STDOUT,TerminalExtensions.iTerm2.preexec())
+                            of(args...)
+                            waserror = repl.waserror
+                        end
+                    end
+                end
+            end
         end
     end
 end
