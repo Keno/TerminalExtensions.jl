@@ -195,7 +195,7 @@ function __init__()
         "\x1b[0G\x1b[0K",               # Clear line
     )
     print(STDOUT,q)
-    @async begin
+    begin
         term = Base.Terminals.TTYTerminal("xterm",STDIN,STDOUT,STDERR)
         Base.Terminals.raw!(term,true)
         start_reading(STDIN)
