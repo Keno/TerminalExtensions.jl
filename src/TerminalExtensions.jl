@@ -1,5 +1,6 @@
 module TerminalExtensions
 
+using Compat
 #
 # None of these functions are operating system specific because they
 # might be connect via e.g. SSH to a different client operating system
@@ -81,7 +82,7 @@ function queryTermcap(name::ASCIIString)
         lowercase(string("+r",q,'=')) || error("Invalid Terminal Response")
 
     response = Array(Uint8,0)
-    sizehint(response,nbytesresponse-6)
+    sizehint!(response,nbytesresponse-6)
     while nb_available(STDIN) != 0
         c = read(STDIN,Uint8)
         if c == 0x9c
@@ -96,7 +97,7 @@ function queryTermcap(name::ASCIIString)
     end
 
     rs = Array(Uint8,0)
-    sizehint(rs,div(length(response),2))
+    sizehint!(rs,div(length(response),2))
     for i = 1:2:length(response)
         push!(rs,parseint(bytestring(response[i:i+1]),16))
     end
