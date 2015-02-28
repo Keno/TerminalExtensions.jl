@@ -183,7 +183,7 @@ module iTerm2
 end
 
 function __init__()
-    if !isinteractive()
+    if !(isinteractive() && isdefined(Base, :active_repl))
         return
     end
     # print, but hide initial mark, even before we know we're dealing with iterm
