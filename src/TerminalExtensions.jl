@@ -12,19 +12,19 @@ const DCS = "\eP"
 const ST  = "\e\\"
 
 function readDCS(io::IO)
-    c1 = read(io,Uint8)
+    c1 = read(io,UInt8)
     c1 == 0x90 && return true
     c1 != '\e' && return false
-    read(io,Uint8) != 'P' && return false
+    read(io,UInt8) != 'P' && return false
     return true
 end
 
 
 function readST(io::IO)
-    c1 = read(io,Uint8)
+    c1 = read(io,UInt8)
     c1 == 0x90 && return true
     c1 != '\e' && return false
-    read(io,Uint8) != '\\' && return false
+    read(io,UInt8) != '\\' && return false
     return true
 end
 
@@ -70,9 +70,9 @@ function queryTermcap(name::ASCIIString)
     nb_available(STDIN) < 3 && error("Incomplete Response")
 
     readDCS(STDIN) || error("Invalid Terminal Response")
-    ok = read(STDIN,Uint8)
+    ok = read(STDIN,UInt8)
     if ok != '1'
-        read(STDIN,Uint8);read(STDIN,Uint8);readST(STDIN)
+        read(STDIN,UInt8);read(STDIN,UInt8);readST(STDIN)
         error("Terminal reports Invalid Request")
     end
 
@@ -81,14 +81,14 @@ function queryTermcap(name::ASCIIString)
     lowercase(bytestring(readbytes(STDIN,3+sizeof(q)))) ==
         lowercase(string("+r",q,'=')) || error("Invalid Terminal Response")
 
-    response = Array(Uint8,0)
+    response = Array(UInt8,0)
     sizehint!(response,nbytesresponse-6)
     while nb_available(STDIN) != 0
-        c = read(STDIN,Uint8)
+        c = read(STDIN,UInt8)
         if c == 0x9c
             break
         elseif c == '\e'
-            if (nb_available(STDIN) == 0 || read(STDIN,Uint8) != '\\')
+            if (nb_available(STDIN) == 0 || read(STDIN,UInt8) != '\\')
                 error("Invalid escape sequence in response")
             end
             break
@@ -96,10 +96,10 @@ function queryTermcap(name::ASCIIString)
         push!(response,c)
     end
 
-    rs = Array(Uint8,0)
+    rs = Array(UInt8,0)
     sizehint!(rs,div(length(response),2))
     for i = 1:2:length(response)
-        push!(rs,parseint(bytestring(response[i:i+1]),16))
+        push!(rs,parse(Int,bytestring(response[i:i+1]),16))
     end
 
     bytestring(rs)
@@ -108,6 +108,7 @@ end
 module iTerm2
 
     import Base: display
+    using Compat
 
     immutable InlineDisplay <: Display; end
 
@@ -125,7 +126,7 @@ module iTerm2
     end
 
     function prompt_prefix(last_success = true)
-        return string("\033]133;D;$(int(last_success))\007",remotehost_and_currentdir(),"\033]133;A\007")
+        return string("\033]133;D;$(convert(Int, last_success))\007",remotehost_and_currentdir(),"\033]133;A\007")
     end
 
     function prompt_suffix()
@@ -140,7 +141,7 @@ module iTerm2
     function prepare_display_file(;filename="Unnamed file", size=nothing, width=nothing, height=nothing, preserveAspectRation::Bool=true, inline::Bool=false)
         q = "\e]1337;File="
         options = ASCIIString[]
-        filename != "Unnamed file" && push!(options,"name=" * base64(filename))
+        filename != "Unnamed file" && push!(options,"name=" * base64encode(filename))
         size !== nothing && push!(options,"size=" * dec(size))
         height !== nothing && push!(options,"height=" * height)
         width !== nothing && push!(options,"width=" * width)
@@ -151,9 +152,9 @@ module iTerm2
         write(STDOUT,q)
     end
 
-    function display_file(data::Vector{Uint8}; kwargs...)
+    function display_file(data::Vector{UInt8}; kwargs...)
         prepare_display_file(;kwargs...)
-        write(STDOUT,base64(data))
+        write(STDOUT,base64encode(data))
         write(STDOUT,'\a')
     end
 
@@ -199,7 +200,7 @@ function __init__()
     begin
         term = Base.Terminals.TTYTerminal("xterm",STDIN,STDOUT,STDERR)
         Base.Terminals.raw!(term,true)
-        start_reading(STDIN)
+        Base.start_reading(STDIN)
 
         if queryTermcap("TN") == "iTerm2"
             pushdisplay(iTerm2.InlineDisplay())
