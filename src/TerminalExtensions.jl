@@ -32,7 +32,7 @@ end
 # Uses xterm termcap queries to query the termcap database.
 #
 # The base query is
-#   DCS + q P t ST
+#   DCS + q Pt ST
 #
 # We also try our best to hide any output on non xterm-compatible terminals
 # though.
@@ -41,6 +41,7 @@ end
 # STDIN reading.
 #
 function queryTermcap(name::ASCIIString)
+    # Note: name is currently unused, "TN" is the only query here
 
     if nb_available(STDIN) > 0
         error("Can only execute queries when no characters are pending on STDIN")
@@ -52,8 +53,9 @@ function queryTermcap(name::ASCIIString)
     query = string(
         "\e7",              # Save cursor position
         CSI,1,"E",          # Cursor next line
-        DCS,"+q$q\e",ST,    # The actual query
-        "\x1b[0G\x1b[0K",   # Clear line
+        DCS,"+q$q",ST,      # The actual query
+        CSI,0,"G",
+        CSI,0,"K",          # Clear line
         "\e8",              # Cursor restore
         )
     write(STDOUT,query)
