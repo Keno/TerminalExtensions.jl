@@ -12,11 +12,14 @@ const DCS = "\eP"
 const ST  = "\e\\"
 
 function readDCS(io::IO)
-    c1 = read(io,UInt8)
-    c1 == 0x90 && return true
-    c1 != '\e' && return false
-    read(io,UInt8) != 'P' && return false
-    return true
+    while nb_available(STDIN) >= 2
+        c1 = read(io,UInt8)
+        c1 == 0x90 && return true
+        if c1 == '\e'
+            read(io,UInt8) == 'P' && return true
+        end
+    end
+    return false
 end
 
 
@@ -42,11 +45,6 @@ end
 #
 function queryTermcap(name::ASCIIString)
     # Note: name is currently unused, "TN" is the only query here
-
-    if nb_available(STDIN) > 0
-        error("Can only execute queries when no characters are pending on STDIN")
-    end
-
     term = Base.Terminals.TTYTerminal("xterm",STDIN,STDOUT,STDERR)
 
     q = join([hex(c) for c in "TN"])
