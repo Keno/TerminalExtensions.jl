@@ -78,7 +78,7 @@ function queryTermcap(name::ASCIIString)
 
     nb_available(STDIN) < 5+sizeof(q) && error("Incomplete Response")
 
-    lowercase(bytestring(readbytes(STDIN,3+sizeof(q)))) ==
+    lowercase(bytestring(read(STDIN,3+sizeof(q)))) ==
         lowercase(string("+r",q,'=')) || error("Invalid Terminal Response")
 
     response = Array(UInt8,0)
@@ -122,7 +122,7 @@ module iTerm2
     end
 
     function remotehost_and_currentdir()
-        return string("\033]1337;RemoteHost=",ENV["USER"],"@",readall(`hostname -f`),"\007","\033]1337;CurrentDir=",pwd(),"\007")
+        return string("\033]1337;RemoteHost=",ENV["USER"],"@",readstring(`hostname -f`),"\007","\033]1337;CurrentDir=",pwd(),"\007")
     end
 
     function prompt_prefix(last_success = true)
@@ -166,7 +166,7 @@ module iTerm2
             function display(d::InlineDisplay, m::MIME{symbol($mime)}, x)
                 prepare_display_file(;filename="image",inline=true)
                 buf = IOBuffer()
-                writemime(Base64Pipe(buf),m,x)
+                writemime(Base.Base64EncodePipe(buf),m,x)
                 write(STDOUT, takebuf_array(buf))
                 write(STDOUT,'\a')
             end
