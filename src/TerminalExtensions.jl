@@ -15,8 +15,8 @@ function readDCS(io::IO)
     while nb_available(STDIN) >= 2
         c1 = read(io,UInt8)
         c1 == 0x90 && return true
-        if c1 == '\e'
-            read(io,UInt8) == 'P' && return true
+        if c1 == UInt8('\e')
+            read(io,UInt8) == UInt8('P') && return true
         end
     end
     return false
@@ -26,8 +26,8 @@ end
 function readST(io::IO)
     c1 = read(io,UInt8)
     c1 == 0x90 && return true
-    c1 != '\e' && return false
-    read(io,UInt8) != '\\' && return false
+    c1 != UInt8('\e') && return false
+    read(io,UInt8) != UInt8('\\') && return false
     return true
 end
 
@@ -43,7 +43,7 @@ end
 # This function assumes that it is called with the terminal in raw mode and
 # STDIN reading.
 #
-function queryTermcap(name::ASCIIString)
+function queryTermcap(name::String)
     # Note: name is currently unused, "TN" is the only query here
     term = Base.Terminals.TTYTerminal("xterm",STDIN,STDOUT,STDERR)
 
@@ -71,7 +71,7 @@ function queryTermcap(name::ASCIIString)
 
     readDCS(STDIN) || error("Invalid Terminal Response")
     ok = read(STDIN,UInt8)
-    if ok != '1'
+    if ok != UInt8('1')
         read(STDIN,UInt8);read(STDIN,UInt8);readST(STDIN)
         error("Terminal reports Invalid Request")
     end
@@ -87,8 +87,8 @@ function queryTermcap(name::ASCIIString)
         c = read(STDIN,UInt8)
         if c == 0x9c
             break
-        elseif c == '\e'
-            if (nb_available(STDIN) == 0 || read(STDIN,UInt8) != '\\')
+        elseif c == UInt8('\e')
+            if (nb_available(STDIN) == 0 || read(STDIN,UInt8) != UInt8('\\'))
                 error("Invalid escape sequence in response")
             end
             break
@@ -163,7 +163,7 @@ module iTerm2
 
     for mime in iterm2_mimes
         @eval begin
-            function display(d::InlineDisplay, m::MIME{symbol($mime)}, x)
+            function display(d::InlineDisplay, m::MIME{Symbol($mime)}, x)
                 prepare_display_file(;filename="image",inline=true)
                 buf = IOBuffer()
                 writemime(Base.Base64EncodePipe(buf),m,x)
