@@ -31,80 +31,6 @@ function readST(io::IO)
     return true
 end
 
-#
-# Uses xterm termcap queries to query the termcap database.
-#
-# The base query is
-#   DCS + q Pt ST
-#
-# We also try our best to hide any output on non xterm-compatible terminals
-# though.
-#
-# This function assumes that it is called with the terminal in raw mode and
-# STDIN reading.
-#
-function queryTermcap(name::String)
-    # Note: name is currently unused, "TN" is the only query here
-    term = Base.Terminals.TTYTerminal("xterm",STDIN,STDOUT,STDERR)
-
-    q = join([hex(c) for c in "TN"])
-    query = string(
-        "\e7",              # Save cursor position
-        CSI,1,"E",          # Cursor next line
-        DCS,"+q$q",ST,      # The actual query
-        CSI,0,"G",
-        CSI,0,"K",          # Clear line
-        "\e8",              # Cursor restore
-        )
-    write(STDOUT,query)
-
-    # Wait 300 ms for an answer
-    timedwait(0.3; pollint=0.05) do
-         nb_available(STDIN) > 0
-    end
-
-    nbytesresponse = nb_available(STDIN)
-    nbytesresponse == 0 && error("Timed out!")
-
-    # at least DCS 1 + r $q = ST (where DCS and ST are potentially two characters)
-    nb_available(STDIN) < 3 && error("Incomplete Response")
-
-    readDCS(STDIN) || error("Invalid Terminal Response")
-    ok = read(STDIN,UInt8)
-    if ok != UInt8('1')
-        read(STDIN,UInt8);read(STDIN,UInt8);readST(STDIN)
-        error("Terminal reports Invalid Request")
-    end
-
-    nb_available(STDIN) < 5+sizeof(q) && error("Incomplete Response")
-
-    lowercase(bytestring(read(STDIN,3+sizeof(q)))) ==
-        lowercase(string("+r",q,'=')) || error("Invalid Terminal Response")
-
-    response = Array(UInt8,0)
-    sizehint!(response,nbytesresponse-6)
-    while nb_available(STDIN) != 0
-        c = read(STDIN,UInt8)
-        if c == 0x9c
-            break
-        elseif c == UInt8('\e')
-            if (nb_available(STDIN) == 0 || read(STDIN,UInt8) != UInt8('\\'))
-                error("Invalid escape sequence in response")
-            end
-            break
-        end
-        push!(response,c)
-    end
-
-    rs = Array(UInt8,0)
-    sizehint!(rs,div(length(response),2))
-    for i = 1:2:length(response)
-        push!(rs,parse(Int,bytestring(response[i:i+1]),16))
-    end
-
-    bytestring(rs)
-end
-
 module iTerm2
 
     import Base: display
@@ -188,21 +114,22 @@ function __init__()
     if !(isinteractive() && isdefined(Base, :active_repl))
         return
     end
-    # print, but hide initial mark, even before we know we're dealing with iterm
-    q = string(
-        iTerm2.shell_version_number(),  # Shell mode version
-        iTerm2.remotehost_and_currentdir(),    # Remote host and current directory
-        # Set preliminary mark (will be updated when command is actually executed)
-        iTerm2.set_mark(),
-        "\x1b[0G\x1b[0K",               # Clear line
-    )
-    print(STDOUT,q)
     begin
         term = Base.Terminals.TTYTerminal("xterm",STDIN,STDOUT,STDERR)
         Base.Terminals.raw!(term,true)
         Base.start_reading(STDIN)
 
-        if queryTermcap("TN") == "iTerm2"
+        # Detect iTerm support
+        println("\e[1337n\e[5n")
+        readuntil(STDIN, "\e")
+        itermname = ""
+        if read(STDIN, Char) != '0'
+            itermname = readuntil(STDIN, "\e")[1:end-2]
+        end
+        # Read the rest of the \e[5n query
+        read(STDIN, 3)
+        
+        if startswith(itermname, "ITERM2")
             pushdisplay(iTerm2.InlineDisplay())
             repl = Base.active_repl#REPL.LineEditREPL(Terminals.TTYTerminal("xterm",STDIN,STDOUT,STDERR))
 
