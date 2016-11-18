@@ -123,12 +123,16 @@ function __init__()
         println("\e[1337n\e[5n")
         readuntil(STDIN, "\e")
         itermname = ""
-        if read(STDIN, Char) != '0'
-            itermname = readuntil(STDIN, "\e")[1:end-2]
+        c = read(STDIN, Char)
+        c1 = read(STDIN, Char)
+        if c == '[' && c1 != '0'
+            itermname = string(c1, readuntil(STDIN, "\e")[1:end-2])
+            read(STDIN, Char)
         end
         # Read the rest of the \e[5n query
-        read(STDIN, 3)
-        
+        read(STDIN, Char)
+
+
         if startswith(itermname, "ITERM2")
             pushdisplay(iTerm2.InlineDisplay())
             repl = Base.active_repl#REPL.LineEditREPL(Terminals.TTYTerminal("xterm",STDIN,STDOUT,STDERR))
