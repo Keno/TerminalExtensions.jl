@@ -127,7 +127,7 @@ function __init__()
         c1 = read(STDIN, Char)
         if c == '[' && c1 != '0'
             itermname = string(c1, readuntil(STDIN, "\e")[1:end-2])
-            read(STDIN, Char)
+            read(STDIN, Char); read(STDIN, Char)
         end
         # Read the rest of the \e[5n query
         read(STDIN, Char)
