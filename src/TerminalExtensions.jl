@@ -120,7 +120,7 @@ function __init__()
         Base.start_reading(STDIN)
 
         # Detect iTerm support
-        println("\e[1337n\e[5n")
+        print(STDOUT, "\e[1337n\e[5n")
         readuntil(STDIN, "\e")
         itermname = ""
         c = read(STDIN, Char)
