@@ -1,6 +1,5 @@
 module TerminalExtensions
 
-using Compat
 #
 # None of these functions are operating system specific because they
 # might be connect via e.g. SSH to a different client operating system
@@ -34,7 +33,6 @@ end
 module iTerm2
 
     import Base: display
-    using Compat
 
     immutable InlineDisplay <: Display; end
 
