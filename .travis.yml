@@ -5,6 +5,7 @@ os:
   - linux
   - osx
 julia:
+  - 0.5
   - nightly
 #script:
 #  - julia -e 'Pkg.init(); Pkg.clone(pwd()); Pkg.test("TerminalExtensions")'
