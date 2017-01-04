@@ -64,7 +64,7 @@ module iTerm2
 
     function prepare_display_file(;filename="Unnamed file", size=nothing, width=nothing, height=nothing, preserveAspectRation::Bool=true, inline::Bool=false)
         q = "\e]1337;File="
-        options = ASCIIString[]
+        options = String[]
         filename != "Unnamed file" && push!(options,"name=" * base64encode(filename))
         size !== nothing && push!(options,"size=" * dec(size))
         height !== nothing && push!(options,"height=" * height)
@@ -90,7 +90,7 @@ module iTerm2
             function display(d::InlineDisplay, m::MIME{Symbol($mime)}, x)
                 prepare_display_file(;filename="image",inline=true)
                 buf = IOBuffer()
-                writemime(Base.Base64EncodePipe(buf),m,x)
+                show(Base.Base64EncodePipe(buf),m,x)
                 write(STDOUT, takebuf_array(buf))
                 write(STDOUT,'\a')
             end
