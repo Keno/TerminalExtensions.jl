@@ -34,7 +34,7 @@ module iTerm2
 
     import Base: display
 
-    immutable InlineDisplay <: Display; end
+    struct InlineDisplay <: Display; end
 
     function set_mark()
         "\033]50;SetMark\007"
