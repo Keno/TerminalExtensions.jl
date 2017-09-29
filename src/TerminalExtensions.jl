@@ -91,7 +91,7 @@ module iTerm2
                 prepare_display_file(;filename="image",inline=true)
                 buf = IOBuffer()
                 show(Base.Base64EncodePipe(buf),m,x)
-                write(STDOUT, takebuf_array(buf))
+                write(STDOUT, take!(buf))
                 write(STDOUT,'\a')
             end
         end
