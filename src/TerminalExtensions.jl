@@ -62,7 +62,7 @@ module iTerm2
     end
 
 
-    function prepare_display_file(;filename="Unnamed file", size=nothing, width=nothing, height=nothing, preserveAspectRation::Bool=true, inline::Bool=false)
+    function prepare_display_file(io::IO=STDOUT;filename="Unnamed file", size=nothing, width=nothing, height=nothing, preserveAspectRatio::Bool=true, inline::Bool=false)
         q = "\e]1337;File="
         options = String[]
         filename != "Unnamed file" && push!(options,"name=" * base64encode(filename))
@@ -73,13 +73,13 @@ module iTerm2
         inline !== false && push!(options,"inline=1")
         q *= join(options,';')
         q *= ":"
-        write(STDOUT,q)
+        write(io,q)
     end
 
-    function display_file(data::Vector{UInt8}; kwargs...)
-        prepare_display_file(;kwargs...)
-        write(STDOUT,base64encode(data))
-        write(STDOUT,'\a')
+    function display_file(data::Vector{UInt8}; io::IO=STDOUT, kwargs...)
+        prepare_display_file(io;kwargs...)
+        write(io,base64encode(data))
+        write(io,'\a')
     end
 
     # Incomplete list. Will be extended as necessity comes up
