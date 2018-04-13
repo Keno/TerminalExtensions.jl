@@ -69,7 +69,7 @@ module iTerm2
         size !== nothing && push!(options,"size=" * dec(size))
         height !== nothing && push!(options,"height=" * height)
         width !== nothing && push!(options,"width=" * width)
-        preserveAspectRation !== true && push!(options,"preserveAspectRation=0")
+        preserveAspectRatio !== true && push!(options,"preserveAspectRatio=0")
         inline !== false && push!(options,"inline=1")
         q *= join(options,';')
         q *= ":"
