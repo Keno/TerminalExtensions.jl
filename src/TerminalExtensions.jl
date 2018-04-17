@@ -88,9 +88,9 @@ module iTerm2
     for mime in iterm2_mimes
         @eval begin
             function display(d::InlineDisplay, m::MIME{Symbol($mime)}, x)
-                prepare_display_file(;filename="image",inline=true)
                 buf = IOBuffer()
                 show(Base.Base64EncodePipe(buf),m,x)
+                prepare_display_file(;filename="image",inline=true)
                 write(STDOUT, take!(buf))
                 write(STDOUT,'\a')
             end
