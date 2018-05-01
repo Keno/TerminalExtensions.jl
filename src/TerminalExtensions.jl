@@ -58,7 +58,7 @@ module iTerm2
     end
 
     function shell_version_number()
-        return "\033]1337;ShellIntegrationVersion=1\007"
+        return "\033]1337;ShellIntegrationVersion=1;shell=julia\007"
     end
 
 
@@ -132,6 +132,9 @@ function __init__()
 
 
         if startswith(itermname, "ITERM2")
+            # Inform iTerm of the shell integration version and that we're julia
+            write(STDOUT, iTerm2.shell_version_number())
+
             pushdisplay(iTerm2.InlineDisplay())
             repl = Base.active_repl#REPL.LineEditREPL(Terminals.TTYTerminal("xterm",STDIN,STDOUT,STDERR))
 
