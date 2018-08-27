@@ -11,7 +11,7 @@ const DCS = "\eP"
 const ST  = "\e\\"
 
 function readDCS(io::IO)
-    while nb_available(stdin) >= 2
+    while bytesavailable(stdin) >= 2
         c1 = read(io,UInt8)
         c1 == 0x90 && return true
         if c1 == UInt8('\e')
