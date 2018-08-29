@@ -5,13 +5,13 @@ module TerminalExtensions
 # might be connect via e.g. SSH to a different client operating system
 #
 
-import Base.Terminals: CSI
+import REPL
 
 const DCS = "\eP"
 const ST  = "\e\\"
 
 function readDCS(io::IO)
-    while nb_available(STDIN) >= 2
+    while nb_available(stdin) >= 2
         c1 = read(io,UInt8)
         c1 == 0x90 && return true
         if c1 == UInt8('\e')
@@ -32,9 +32,10 @@ end
 
 module iTerm2
 
-    import Base: display
+    import REPL: display
+    import Base64
 
-    struct InlineDisplay <: Display; end
+    struct InlineDisplay <: AbstractDisplay; end
 
     function set_mark()
         "\033]50;SetMark\007"
@@ -46,7 +47,9 @@ module iTerm2
     end
 
     function remotehost_and_currentdir()
-        return string("\033]1337;RemoteHost=",ENV["USER"],"@",readstring(`hostname -f`),"\007","\033]1337;CurrentDir=",pwd(),"\007")
+        return string("\033]1337;RemoteHost=", ENV["USER"], "@",
+                      read(`hostname -f`, String), "\007",
+                      "\033]1337;CurrentDir=", pwd(), "\007")
     end
 
     function prompt_prefix(last_success = true)
@@ -62,10 +65,10 @@ module iTerm2
     end
 
 
-    function prepare_display_file(io::IO=STDOUT;filename="Unnamed file", size=nothing, width=nothing, height=nothing, preserveAspectRatio::Bool=true, inline::Bool=false)
+    function prepare_display_file(io::IO=stdout;filename="Unnamed file", size=nothing, width=nothing, height=nothing, preserveAspectRatio::Bool=true, inline::Bool=false)
         q = "\e]1337;File="
         options = String[]
-        filename != "Unnamed file" && push!(options,"name=" * base64encode(filename))
+        filename != "Unnamed file" && push!(options,"name=" * Base64.base64encode(filename))
         size !== nothing && push!(options,"size=" * dec(size))
         height !== nothing && push!(options,"height=" * height)
         width !== nothing && push!(options,"width=" * width)
@@ -76,9 +79,9 @@ module iTerm2
         write(io,q)
     end
 
-    function display_file(data::Vector{UInt8}; io::IO=STDOUT, kwargs...)
+    function display_file(data::Vector{UInt8}; io::IO=stdout, kwargs...)
         prepare_display_file(io;kwargs...)
-        write(io,base64encode(data))
+        write(io, Base64.base64encode(data))
         write(io,'\a')
     end
 
@@ -89,17 +92,17 @@ module iTerm2
         @eval begin
             function display(d::InlineDisplay, m::MIME{Symbol($mime)}, x)
                 buf = IOBuffer()
-                show(Base.Base64EncodePipe(buf),m,x)
+                show(Base64.Base64EncodePipe(buf),m,x)
                 prepare_display_file(;filename="image",inline=true)
-                write(STDOUT, take!(buf))
-                write(STDOUT,'\a')
+                write(stdout, take!(buf))
+                write(stdout,'\a')
             end
         end
     end
 
     function display(d::InlineDisplay,x)
         for m in iterm2_mimes
-            if mimewritable(m,x)
+            if showable(m,x)
                 return display(d,m,x)
             end
         end
@@ -113,30 +116,30 @@ function __init__()
         return
     end
     begin
-        term = Base.Terminals.TTYTerminal("xterm",STDIN,STDOUT,STDERR)
-        Base.Terminals.raw!(term,true)
-        Base.start_reading(STDIN)
+        term = REPL.Terminals.TTYTerminal("xterm",stdin,stdout,stderr)
+        REPL.Terminals.raw!(term,true)
+        Base.start_reading(stdin)
 
         # Detect iTerm support
-        print(STDOUT, "\e[1337n\e[5n")
-        readuntil(STDIN, "\e")
+        print(stdout, "\e[1337n\e[5n")
+        readuntil(stdin, "\e")
         itermname = ""
-        c = read(STDIN, Char)
-        c1 = read(STDIN, Char)
+        c = read(stdin, Char)
+        c1 = read(stdin, Char)
         if c == '[' && c1 != '0'
-            itermname = string(c1, readuntil(STDIN, "\e")[1:end-2])
-            read(STDIN, Char); read(STDIN, Char)
+            itermname = string(c1, readuntil(stdin, "\e")[1:end-2])
+            read(stdin, Char); read(stdin, Char)
         end
         # Read the rest of the \e[5n query
-        read(STDIN, Char)
+        read(stdin, Char)
 
 
         if startswith(itermname, "ITERM2")
             pushdisplay(iTerm2.InlineDisplay())
-            repl = Base.active_repl#REPL.LineEditREPL(Terminals.TTYTerminal("xterm",STDIN,STDOUT,STDERR))
+            repl = Base.active_repl
 
             if !isdefined(repl,:interface)
-                repl.interface = Base.REPL.setup_interface(repl)
+                repl.interface = REPL.setup_interface(repl)
             end
 
             let waserror = false
@@ -152,7 +155,7 @@ function __init__()
                     if isdefined(mode,:on_done)
                         of = mode.on_done
                         mode.on_done = function (args...)
-                            print(STDOUT,TerminalExtensions.iTerm2.preexec())
+                            print(stdout,TerminalExtensions.iTerm2.preexec())
                             of(args...)
                             waserror = repl.waserror
                         end
@@ -163,6 +166,6 @@ function __init__()
     end
 end
 
-export queryTermcap, iTerm2
+export iTerm2
 
 end # module
