@@ -136,7 +136,7 @@ function __init__()
 
         if startswith(itermname, "ITERM2")
             # Inform iTerm of the shell integration version and that we're julia
-            write(STDOUT, iTerm2.shell_version_number())
+            write(stdout, iTerm2.shell_version_number())
 
             pushdisplay(iTerm2.InlineDisplay())
             repl = Base.active_repl
