@@ -35,7 +35,10 @@ module iTerm2
     import REPL: display
     import Base64
 
-    struct InlineDisplay <: AbstractDisplay; end
+    struct InlineDisplay <: AbstractDisplay
+        io::IO
+    end
+    InlineDisplay() = InlineDisplay(stdout)
 
     function set_mark()
         "\033]50;SetMark\007"
@@ -93,9 +96,9 @@ module iTerm2
             function display(d::InlineDisplay, m::MIME{Symbol($mime)}, x)
                 buf = IOBuffer()
                 show(Base64.Base64EncodePipe(buf),m,x)
-                prepare_display_file(;filename="image",inline=true)
-                write(stdout, take!(buf))
-                write(stdout,'\a')
+                prepare_display_file(d.io;filename="image",inline=true)
+                write(d.io, take!(buf))
+                write(d.io,'\a')
             end
         end
     end
