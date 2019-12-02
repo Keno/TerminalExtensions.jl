@@ -7,4 +7,4 @@ but if you are using a terminal emulator with a cool advanced feature, let me kn
 
 # Usage
 
-Simply put `atreplinit((_)->Base.require(:TerminalExtensions))` in your `.juliarc.jl` and everything should be detected and configured automatically.
+Simply put `atreplinit((_)->Base.require(:TerminalExtensions))` in your `~/.julia/config/startup.jl` file and everything should be detected and configured automatically.
