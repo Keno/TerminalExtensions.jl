@@ -137,7 +137,7 @@ function __init__()
         read(stdin, Char)
 
 
-        if startswith(itermname, "ITERM2")
+        if startswith(itermname, "ITERM2") || get(ENV, "LC_TERMINAL", "") == "iTerm2" && haskey(ENV, "TMUX")
             # Inform iTerm of the shell integration version and that we're julia
             write(stdout, iTerm2.shell_version_number())
 
